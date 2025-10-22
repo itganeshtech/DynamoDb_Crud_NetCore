@@ -1,0 +1,52 @@
+﻿@model IEnumerable<ProductDIExample.Models.Product>
+
+@{
+    ViewData["Title"] = "All Products";
+}
+
+<h2 class="mt-4 mb-3 text-center text-primary">All Products</h2>
+
+<div class="text-end mb-3">
+    <a asp-action="Create" class="btn btn-success">+ Add New Product</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning text-center">
+        No products found in DynamoDB.
+    </div>
+}
+else
+{
+    <table class="table table-striped table-bordered align-middle shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Product ID</th>
+                <th>Name</th>
+                <th>Price (₹)</th>
+                <th class="text-center" style="width:180px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in Model)
+            {
+                <tr>
+                    <td>@product.Id</td>
+                    <td>@product.Name</td>
+                    <td>@product.Price</td>
+                    <td class="text-center">
+                        <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-sm btn-primary me-2">
+                            Details
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@product.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Are you sure you want to delete this product?');">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
