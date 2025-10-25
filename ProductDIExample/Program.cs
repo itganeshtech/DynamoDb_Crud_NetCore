@@ -1,7 +1,9 @@
+using Amazon;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using ProductDIExample.Models;
 using ProductDIExample.Services;
 
@@ -18,24 +20,47 @@ namespace ProductDIExample
 
             var config = new AmazonDynamoDBConfig
             {
-                ServiceURL = "http://localhost:8001",
+                ServiceURL = "http://localhost:8555",
                 UseHttp = true
             };
 
             // Create DynamoDB client & context
-           
-            var client = new AmazonDynamoDBClient(config);
-            var context = new DynamoDBContext(client);
+            // Register IAmazonDynamoDB as singleton using factory
+            services.AddSingleton<IAmazonDynamoDB>(sp =>
+            {
+                return new AmazonDynamoDBClient(config);
+            });
+
+            // Register IDynamoDBContext using the IAmazonDynamoDB instance
+            services.AddSingleton<IDynamoDBContext>(sp =>
+            {
+                var client = sp.GetRequiredService<IAmazonDynamoDB>();
+                return new DynamoDBContext(client);
+            });
+
+            // Register your data service
+            services.AddScoped<IDataService, DynamoDbDataService>();
+            var app = builder.Build();
+            // Ensure table exists and seed data before app runs handling requests
+            var awsClient = app.Services.GetRequiredService<IAmazonDynamoDB>();
+            var dynamoContext = app.Services.GetRequiredService<IDynamoDBContext>();
+
+            await EnsureTableExistsAndSeedAsync(awsClient, dynamoContext, "Products");
+
+            //var client = new AmazonDynamoDBClient(config);
+            //var context = new DynamoDBContext(client);
 
             // Register with Dependency Injection
-            services.AddSingleton<IAmazonDynamoDB>(client);
-            services.AddSingleton<IDynamoDBContext>(context);
-            services.AddScoped<IDataService, DynamoDbDataService>();
+            //services.AddSingleton<IAmazonDynamoDB>(client);
+            //services.AddSingleton<IDynamoDBContext>(context);
+
+
+            //services.AddScoped<IDataService, DynamoDbDataService>();
             // Add controllers or minimal APIs
-            services.AddControllers();
-            var app = builder.Build();
+            //services.AddControllers();
+            
             // Ensure DynamoDB table exists
-            await EnsureTableExistsAndSeedAsync(client, context, "Products");
+            //await EnsureTableExistsAndSeedAsync(client, context, "Products");
 
 
             // Configure the HTTP request pipeline.
